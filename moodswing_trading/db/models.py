@@ -1,0 +1,1 @@
+# SQLAlchemy ORM tables (Articles, SentimentDay, Prediction, Company, PriceTick)

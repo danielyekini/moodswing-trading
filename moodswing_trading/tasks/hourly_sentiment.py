@@ -1,0 +1,1 @@
+# recompute rolling average, publish via Redis
