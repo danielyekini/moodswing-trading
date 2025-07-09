@@ -1,33 +1,44 @@
-from fastapi import APIRouter, WebSocket, Path, Query
+from datetime import date
+from fastapi import APIRouter, WebSocket, Path, Query, HTTPException
+
+from moodswing_trading.services.market import MarketService
+from moodswing_trading.models import Candle, Quote, Tick
 
 router = APIRouter(
     prefix="/api/v1/stocks",
     tags=["market"],
 )
 
-@router.get("/{ticker}/history")
+service = MarketService()
+
+@router.get("/{ticker}/history", response_model=dict)
 async def get_history(
     ticker: str = Path(..., min_length=1, max_length=4, regex=r"^[A-Z]+$"),
-    start: str = Query(...),
-    end: str = Query(None),
-    interval: str = Query("1d", regex=r"^(1d|1wk|1mo)$")
+    start: date = Query(...),
+    end: date = Query(None),
+    interval: str = Query("1d", regex=r"^(1d|1wk|1mo)$"),
 ):
     """Fetch OHLCV candles for a given resolution."""
-    return {"ticker": ticker, "interval": interval, "candles": []}
+    if end is None:
+        end = date.today()
+    if start > end:
+        raise HTTPException(status_code=400, detail="invalid date range")
+    candles = await service.fetch_history(ticker, start, end, interval)
+    return {"ticker": ticker, "interval": interval, "candles": [c.dict() for c in candles]}
 
-@router.get("/{ticker}/intraday")
+@router.get("/{ticker}/intraday", response_model=Quote)
 async def get_intraday(
     ticker: str = Path(..., min_length=1, max_length=4, regex=r"^[A-Z]+$")
 ):
     """Latest quote snapshot (bid, ask, last)."""
-    return {"ticker": ticker, "bid": None, "ask": None, "last": None}
+    return await service.fetch_intraday_quote(ticker)
 
 @router.websocket("/{ticker}/stream")
 async def stream_ticks(websocket: WebSocket, ticker: str):
     """Real-time tick push (JSON frames)."""
     await websocket.accept()
-    await websocket.send_json({"ts": "2025-07-08T14:33:05.215Z", "price": 0, "volume": 0})
-    await websocket.close()
-
-
-
+    try:
+        async for tick in service.tick_stream(ticker):
+            await websocket.send_json(tick.dict())
+    except Exception:
+        await websocket.close()
