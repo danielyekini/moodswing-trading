@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, status
 from api import market, news, predict, sentiment
 from api import company
 from fastapi.responses import PlainTextResponse, JSONResponse
-from moodswing_trading.models import ProblemDetails
+from models import ProblemDetails
 import uuid
 
 app = FastAPI()
@@ -37,7 +37,7 @@ def problem_response(title, status_code, detail=None):
     )
     return JSONResponse(
         status_code=status_code,
-        content=problem.dict(),
+        content=problem.model_dump(),
         media_type="application/problem+json"
     )
 
