@@ -34,3 +34,10 @@ class CompanyProfile(BaseModel):
     sector: Optional[str] = None
     industry: Optional[str] = None
     exchange: Optional[str] = None
+
+class Article(BaseModel):
+    id: str
+    headline: str
+    source: str
+    ts_pub: str
+    sentiment: int
