@@ -27,3 +27,10 @@ class Tick(BaseModel):
     ts: str
     price: float
     volume: int
+
+class CompanyProfile(BaseModel):
+    ticker: str
+    name: str
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+    exchange: Optional[str] = None

@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request, status
-from api import market, news, predict, sentiment
-from api import company
+from api import company, market, news, predict, sentiment
 from fastapi.responses import PlainTextResponse, JSONResponse
 from models import ProblemDetails
 import uuid
