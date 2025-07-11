@@ -2,9 +2,11 @@ from fastapi import FastAPI, Request, status
 from api import company, market, news, predict, sentiment
 from fastapi.responses import PlainTextResponse, JSONResponse
 from models import ProblemDetails
+from db.models import init_db
 import uuid
 
 app = FastAPI()
+init_db()
 
 app.include_router(market.router)
 app.include_router(news.router)

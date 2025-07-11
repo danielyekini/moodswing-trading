@@ -13,6 +13,9 @@ from dateparser import parse as parse_date
 from utils.pygooglenews import GoogleNews
 from models import Article
 from .sentiment import SentimentService
+from db import crud, models as db_models
+from db.models import SessionLocal
+import hashlib
 
 
 class NewsIngestService:
@@ -35,6 +38,7 @@ class NewsIngestService:
             return self.gn.search(ticker, from_=start, to_=end)
 
         articles: List[Article] = []
+        db_records: List[db_models.Article] = []
         look_back = 0
         cur_start = from_dt
         while len(articles) < min_count and look_back < 7:
@@ -47,13 +51,25 @@ class NewsIngestService:
                 ts = parse_date(ts_raw) or datetime.utcnow()
                 source = entry.get("source", {}).get("title", "Unknown")
                 sentiment = await self.sentiment.score(title)
+                art_id = hashlib.sha256(entry.get("link", str(uuid4())).encode()).hexdigest()
                 articles.append(
                     Article(
-                        id=uuid4().hex,
+                        id=art_id,
                         headline=title,
                         source=source,
                         ts_pub=ts.isoformat() + "Z",
                         sentiment=sentiment,
+                    )
+                )
+                db_records.append(
+                    db_models.Article(
+                        id=art_id,
+                        ticker=ticker.upper(),
+                        headline=title,
+                        ts_pub=ts,
+                        sentiment=sentiment,
+                        provider=source,
+                        raw_json=entry,
                     )
                 )
             if len(articles) < min_count:
@@ -61,4 +77,10 @@ class NewsIngestService:
                 cur_start = cur_start - timedelta(days=1)
             else:
                 break
-        return articles[:min_count]
+
+        articles = articles[:min_count]
+        if db_records:
+            with SessionLocal() as db:
+                crud.save_articles(db, db_records)
+
+        return articles

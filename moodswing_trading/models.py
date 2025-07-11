@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 
 class ProblemDetails(BaseModel):
@@ -41,3 +41,25 @@ class Article(BaseModel):
     source: str
     ts_pub: str
     sentiment: int
+
+class SentimentRecord(BaseModel):
+    """Aggregated sentiment score for a trading day."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    ticker: str
+    date: str
+    score: float
+    article_cnt: int
+    is_final: bool
+
+
+class PredictionResult(BaseModel):
+    """Model prediction output."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    ticker: str
+    mu: float
+    sigma: float
+    run_ts: str

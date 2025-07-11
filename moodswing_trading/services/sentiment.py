@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import asyncio
 from transformers import pipeline
+from datetime import date
+from db import crud
+from db.models import SessionLocal
 
 
 class SentimentService:
@@ -25,3 +28,12 @@ class SentimentService:
             return 0
 
         return await asyncio.to_thread(_predict)
+
+    async def get_day_score(self, ticker: str, dt: date):
+        """Fetch sentiment record for the given ticker and date from the DB."""
+
+        def _query():
+            with SessionLocal() as db:
+                return crud.get_sentiment_day(db, dt, ticker.upper())
+
+        return await asyncio.to_thread(_query)
