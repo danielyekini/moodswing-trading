@@ -24,7 +24,7 @@ async def get_history(
     if start > end:
         raise HTTPException(status_code=400, detail="invalid date range")
     candles = await service.fetch_history(ticker, start, end, interval)
-    return {"ticker": ticker, "interval": interval, "candles": [c.dict() for c in candles]}
+    return {"ticker": ticker, "interval": interval, "candles": [c.model_dump() for c in candles]}
 
 @router.get("/{ticker}/intraday", response_model=Quote)
 async def get_intraday(
