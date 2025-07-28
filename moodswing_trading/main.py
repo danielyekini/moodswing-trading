@@ -1,11 +1,17 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from api import company, market, news, predict, sentiment
 from fastapi.responses import PlainTextResponse, JSONResponse, Response
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 from models import ProblemDetails
 from db.models import init_db
+from core.logging import setup_logging
+from core.config import get_settings
 import uuid
+
+setup_logging()
+settings = get_settings()
+
 
 app = FastAPI()
 init_db()
@@ -70,3 +76,12 @@ def problem_response(title, status_code, detail=None):
 @app.exception_handler(400)
 async def bad_request_handler(request: Request, exc):
     return problem_response("ValidationError", 400, str(exc))
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return problem_response(exc.detail or "HTTPException", exc.status_code)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return problem_response("Internal Server Error", 500, str(exc))

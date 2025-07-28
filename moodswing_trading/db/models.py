@@ -5,7 +5,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./moodswing.db")
+from core.config import get_settings
+
+settings = get_settings()
+
+DATABASE_URL = settings.database_url
 
 engine = create_engine(DATABASE_URL, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

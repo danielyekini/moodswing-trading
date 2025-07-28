@@ -3,25 +3,27 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime, timedelta
 
 import redis
 
 from moodswing_trading.core.celery_app import celery_app
+from moodswing_trading.core.config import get_settings
+from moodswing_trading.core.logging import setup_logging
 from db import crud, models as db_models
 from db.models import SessionLocal
 
+setup_logging()
+settings = get_settings()
 
-REDIS = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
-TICKERS = [t.strip().upper() for t in os.getenv("TICKERS", "").split(",") if t.strip()]
-
+REDIS = redis.Redis.from_url(settings.redis_url)
+TICKERS = settings.tickers
 
 @celery_app.task(name="hourly_sentiment_refresh")
 def refresh() -> None:
     """Update rolling sentiment scores and publish."""
 
-    today = datetime.utcnow().date()
+    today = datetime.now(datetime.timezone.utc).date()
     start = datetime.combine(today, datetime.min.time())
     end = start + timedelta(days=1)
 

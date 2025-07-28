@@ -6,6 +6,12 @@ from typing import List, AsyncGenerator, Optional
 import httpx
 import yfinance as yf
 
+
+class HistoryDownloadError(Exception):
+    """Raised when yfinance fails to return historical data."""
+
+    pass
+
 from models import Candle, Quote, Tick
 
 ALPHAVANTAGE_URL = "https://www.alphavantage.co/query"
@@ -24,17 +30,33 @@ class MarketService:
         interval: str = "1d",
     ) -> List[Candle]:
         """Download historical candles using yfinance."""
-        data = yf.download(ticker, start=start.isoformat(), end=end.isoformat(), interval=interval)
+        try:
+            data = await asyncio.to_thread(
+                yf.download,
+                ticker,
+                start=start.isoformat(),
+                end=end.isoformat(),
+                interval=interval,
+            )
+        except Exception as exc:
+            msg = str(exc)
+            if any(term in msg for term in ("ProxyError", "ConnectionError")):
+                msg += " - Unable to reach Yahoo Finance (fc.yahoo.com). Check network or proxy settings."
+            raise HistoryDownloadError(msg) from exc
+
+        if data.empty:
+            raise HistoryDownloadError(f"no data returned for {ticker}")
+        
         candles: List[Candle] = []
         for ts, row in data.iterrows():
             candles.append(
                 Candle(
                     ts=ts.date().isoformat(),
-                    open=float(row["Open"]),
-                    high=float(row["High"]),
-                    low=float(row["Low"]),
-                    close=float(row["Close"]),
-                    volume=int(row["Volume"]),
+                    open=float(row.iloc[3]),
+                    high=float(row.iloc[1]),
+                    low=float(row.iloc[2]),
+                    close=float(row.iloc[0]),
+                    volume=int(row.iloc[4]),
                 )
             )
         return candles

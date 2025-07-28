@@ -4,19 +4,23 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from datetime import datetime, timedelta
 
 import redis
 
 from moodswing_trading.core.celery_app import celery_app
+from moodswing_trading.core.config import get_settings
+from moodswing_trading.core.logging import setup_logging
 from db import crud
 from db.models import SessionLocal
 from services.market import MarketService
 
+setup_logging()
+settings = get_settings()
 
-REDIS = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
-TICKERS = [t.strip().upper() for t in os.getenv("TICKERS", "").split(",") if t.strip()]
+REDIS = redis.Redis.from_url(settings.redis_url)
+TICKERS = settings.tickers
+
 market = MarketService()
 
 
