@@ -7,6 +7,7 @@ class ProblemDetails(BaseModel):
     status: int
     detail: Optional[str] = None
     trace_id: Optional[str] = None
+    errors: Optional[List[dict]] = None
 
 class Candle(BaseModel):
     ts: str

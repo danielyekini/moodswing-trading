@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, status, HTTPException
+from fastapi.exceptions import RequestValidationError
 from api import company, market, news, predict, sentiment, system
 from fastapi.responses import PlainTextResponse, JSONResponse, Response
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -60,13 +61,14 @@ async def root():
 
 # --- Error Handlers ---
 
-def problem_response(title, status_code, detail=None):
+def problem_response(title, status_code, detail=None, errors=None):
     trace_id = str(uuid.uuid4())
     problem = ProblemDetails(
         title=title,
         status=status_code,
         detail=detail,
-        trace_id=trace_id
+        trace_id=trace_id,
+        errors=errors
     )
     return JSONResponse(
         status_code=status_code,
@@ -77,6 +79,14 @@ def problem_response(title, status_code, detail=None):
 @app.exception_handler(400)
 async def bad_request_handler(request: Request, exc):
     return problem_response("ValidationError", 400, str(exc))
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request: Request, exc: RequestValidationError):
+    return problem_response(
+        "ValidationError",
+        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        errors=exc.errors(),
+    )
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
