@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Path, HTTPException
+from fastapi import APIRouter, Path, HTTPException, WebSocket
+import asyncio
 from datetime import datetime
 from services.sentiment import SentimentService
 from models import SentimentRecord
@@ -29,3 +30,22 @@ async def get_sentiment(
         is_final=record.is_final,
         explanation=record.explanation,
     )
+
+@router.websocket("/stream")
+async def stream_updates(websocket: WebSocket):
+    """Push sentiment day updates in real-time."""
+    await websocket.accept()
+    try:
+        async for msg in service.update_stream():
+            if isinstance(msg, str) and msg == "PING":
+                await websocket.send_json({"type": "ping"})
+                try:
+                    reply = await asyncio.wait_for(websocket.receive_json(), timeout=10)
+                except asyncio.TimeoutError:
+                    break
+                if not isinstance(reply, dict) or reply.get("type") != "pong":
+                    break
+                continue
+            await websocket.send_json(msg)
+    finally:
+        await websocket.close()
