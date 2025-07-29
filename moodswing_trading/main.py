@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, status, HTTPException
-from api import company, market, news, predict, sentiment
+from api import company, market, news, predict, sentiment, system
 from fastapi.responses import PlainTextResponse, JSONResponse, Response
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
@@ -43,6 +43,7 @@ app.include_router(news.router)
 app.include_router(predict.router)
 app.include_router(sentiment.router)
 app.include_router(company.router)
+app.include_router(system.router)
 
 @app.get("/healthz", response_class=PlainTextResponse)
 async def healthz():
