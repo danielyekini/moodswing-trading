@@ -19,6 +19,10 @@ def setup_periodic_tasks(app: Celery) -> None:
             "task": "hourly_predict",
             "schedule": crontab(minute=0, hour="*"),
         },
+        "partition-maintenance": {
+            "task": "partition_maintenance",
+            "schedule": crontab(minute=0, hour=2),
+        },
     }
 
 __all__ = ["setup_periodic_tasks"]

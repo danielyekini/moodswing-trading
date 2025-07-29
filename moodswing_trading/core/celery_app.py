@@ -1,6 +1,8 @@
 """Factory for Celery application used by background workers."""
 
 from celery import Celery
+from celery.signals import task_failure
+from prometheus_client import Counter
 
 from .config import get_settings
 from .scheduler import setup_periodic_tasks
@@ -20,6 +22,20 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+TASK_FAILURES = Counter(
+    "task_failures_total",
+    "Total Celery task failures",
+    ["task_name"],
+)
+
+
+@task_failure.connect
+def _count_failure(sender=None, **_: object) -> None:
+    """Increment Prometheus counter when a task fails."""
+    name = getattr(sender, "name", str(sender)) if sender else "unknown"
+    TASK_FAILURES.labels(name).inc()
+
 
 setup_periodic_tasks(celery_app)
 
