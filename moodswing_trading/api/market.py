@@ -1,5 +1,6 @@
 from datetime import date
 from fastapi import APIRouter, WebSocket, Path, Query, HTTPException
+import asyncio
 
 from services.market import MarketService, HistoryDownloadError
 from models import Candle, Quote, Tick
@@ -41,9 +42,18 @@ async def stream_ticks(websocket: WebSocket, ticker: str):
     """Real-time tick push (JSON frames)."""
     await websocket.accept()
     try:
-        async for tick in service.tick_stream(ticker):
-            await websocket.send_json(tick.dict())
-    except Exception:
+        async for msg in service.tick_stream(ticker):
+            if isinstance(msg, str) and msg == "PING":
+                await websocket.send_json({"type": "ping"})
+                try:
+                    reply = await asyncio.wait_for(websocket.receive_json(), timeout=10)
+                except asyncio.TimeoutError:
+                    break
+                if not isinstance(reply, dict) or reply.get("type") != "pong":
+                    break
+                continue
+            await websocket.send_json(msg.dict())
+    finally:
         await websocket.close()
 
 

@@ -1,7 +1,8 @@
 import os
 import asyncio
 from datetime import date, datetime
-from typing import List, AsyncGenerator, Optional
+from typing import List, AsyncGenerator, Optional, Any, Union
+import contextlib
 
 import httpx
 import yfinance as yf
@@ -76,9 +77,49 @@ class MarketService:
         volume = int(data.get("06. volume", 0))
         return Quote(ticker=ticker, bid=price, ask=price, last=price, volume=volume)
 
-    async def tick_stream(self, ticker: str, interval: float = 1.0) -> AsyncGenerator[Tick, None]:
-        """Yield live ticks using Alpha Vantage GLOBAL_QUOTE."""
-        while True:
-            quote = await self.fetch_intraday_quote(ticker)
-            yield Tick(ts=datetime.utcnow().isoformat() + "Z", price=quote.last, volume=quote.volume or 0)
-            await asyncio.sleep(interval)
+    async def tick_stream(
+        self,
+        ticker: str,
+        interval: float = 1.0,
+        ping_interval: float = 30.0,
+    ) -> AsyncGenerator[Union[Tick, str], None]:
+        """Yield live ticks and periodic ``"PING"`` tokens.
+
+        When the internal queue grows beyond 500 items the oldest
+        message will be dropped.
+        """
+
+        queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=500)
+
+        async def produce_ticks() -> None:
+            while True:
+                quote = await self.fetch_intraday_quote(ticker)
+                tick = Tick(
+                    ts=datetime.utcnow().isoformat() + "Z",
+                    price=quote.last,
+                    volume=quote.volume or 0,
+                )
+                if queue.full():
+                    queue.get_nowait()
+                queue.put_nowait(tick)
+                await asyncio.sleep(interval)
+
+        async def produce_ping() -> None:
+            while True:
+                if queue.full():
+                    queue.get_nowait()
+                queue.put_nowait("PING")
+                await asyncio.sleep(ping_interval)
+
+        tick_task = asyncio.create_task(produce_ticks())
+        ping_task = asyncio.create_task(produce_ping())
+        try:
+            while True:
+                msg = await queue.get()
+                yield msg
+        finally:
+            tick_task.cancel()
+            ping_task.cancel()
+            for task in (tick_task, ping_task):
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
