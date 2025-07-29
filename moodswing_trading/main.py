@@ -2,12 +2,14 @@ from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.exceptions import RequestValidationError
 from api import company, market, news, predict, sentiment, system
 from fastapi.responses import PlainTextResponse, JSONResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 from models import ProblemDetails
 from db.models import init_db
 from core.logging import setup_logging
 from core.config import get_settings
+from core.ratelimit import rate_limit_middleware
 import uuid
 
 setup_logging()
@@ -15,6 +17,14 @@ settings = get_settings()
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.middleware("http")(rate_limit_middleware)
 init_db()
 
 # Prometheus metrics

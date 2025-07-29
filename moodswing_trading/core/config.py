@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # broker_url: str = Field(None, env="BROKER_URL")
     # result_backend: str = Field(None, env="RESULT_BACKEND")
     tickers_env: str = Field("", env="TICKERS")
+    allowed_origins_env: str = Field("*", env="ALLOWED_ORIGINS")
 
     class Config:
         env_file = ".env"
@@ -29,6 +30,12 @@ class Settings(BaseSettings):
     @property
     def tickers(self) -> List[str]:
         return [t.strip().upper() for t in self.tickers_env.split(",") if t.strip()]
+
+    @property
+    def allowed_origins(self) -> List[str]:
+        if self.allowed_origins_env.strip() == "*":
+            return ["*"]
+        return [o.strip() for o in self.allowed_origins_env.split(",") if o.strip()]
 
 @lru_cache()
 def get_settings() -> Settings:
