@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime, timedelta
+import subprocess
+from pathlib import Path
 
 import redis
 
@@ -41,14 +43,35 @@ def run() -> None:
     """Run prediction model and broadcast results."""
 
     dt = datetime.utcnow().date()
+    repo_root = Path(__file__).resolve().parents[1]
+    try:
+        git_sha = subprocess.check_output([
+            "git",
+            "rev-parse",
+            "--short",
+            "HEAD",
+        ], cwd=repo_root).decode().strip()
+    except Exception:
+        git_sha = "unknown"
+    model_version = f"{dt.isoformat()}-{git_sha}"
     for ticker in TICKERS:
         mu, sigma = asyncio.run(_predict(ticker))
         with SessionLocal() as db:
-            rec = crud.insert_prediction(db, ticker, dt, mu, sigma)
+            rec = crud.insert_prediction(
+                db,
+                ticker,
+                dt,
+                mu,
+                sigma,
+                model_version=model_version,
+                run_type="HOURLY",
+            )
         payload = {
             "ticker": ticker,
             "mu": float(mu),
             "sigma": float(sigma),
             "run_ts": rec.run_ts.isoformat() + "Z",
+            "model_version": rec.model_version,
+            "run_type": rec.run_type,
         }
         REDIS.publish("prediction", json.dumps(payload))

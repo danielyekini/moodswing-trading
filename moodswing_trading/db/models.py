@@ -55,6 +55,8 @@ class Prediction(Base):
     dt = Column(Date)
     mu = Column(Numeric(10, 2))
     sigma = Column(Numeric(10, 2))
+    model_version = Column(String)
+    run_type = Column(String)
 
     __table_args__ = (
         Index("prediction_latest_idx", "ticker", "run_ts"),

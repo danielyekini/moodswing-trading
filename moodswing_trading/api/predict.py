@@ -21,12 +21,7 @@ async def get_prediction(
     pred = await service.get_prediction(ticker, dt)
     if not pred:
         raise HTTPException(status_code=404, detail="not found")
-    return PredictionResult(
-        ticker=ticker.upper(),
-        mu=float(pred.mu),
-        sigma=float(pred.sigma),
-        run_ts=pred.run_ts.isoformat() + "Z",
-    )
+    return pred
 
 @router.get("/{ticker}")
 async def list_predictions(
@@ -37,13 +32,5 @@ async def list_predictions(
     records = await service.list_predictions(ticker)
     return {
         "ticker": ticker.upper(),
-        "predictions": [
-            PredictionResult(
-                ticker=ticker.upper(),
-                mu=float(r.mu),
-                sigma=float(r.sigma),
-                run_ts=r.run_ts.isoformat() + "Z",
-            ).model_dump()
-            for r in records
-        ],
+        "predictions": [r.model_dump() for r in records],
     }

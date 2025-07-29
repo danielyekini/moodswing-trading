@@ -63,3 +63,5 @@ class PredictionResult(BaseModel):
     mu: float
     sigma: float
     run_ts: str
+    model_version: str
+    run_type: str

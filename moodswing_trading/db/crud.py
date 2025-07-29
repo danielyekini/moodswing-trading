@@ -74,9 +74,19 @@ def insert_prediction(
     mu: float,
     sigma: float,
     run_ts: Optional[datetime] = None,
+    model_version: str = "",
+    run_type: str = "",
 ) -> Prediction:
     run_ts = run_ts or datetime.utcnow()
-    pred = Prediction(ticker=ticker, dt=dt, mu=mu, sigma=sigma, run_ts=run_ts)
+    pred = Prediction(
+        ticker=ticker,
+        dt=dt,
+        mu=mu,
+        sigma=sigma,
+        run_ts=run_ts,
+        model_version=model_version,
+        run_type=run_type,
+    )
     db.add(pred)
     db.commit()
     return pred
