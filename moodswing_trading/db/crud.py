@@ -35,6 +35,7 @@ def upsert_sentiment_day(
     ticker: str,
     score: float,
     article_cnt: int,
+    explanation: str | None = None,
     is_final: bool = False,
 ) -> SentimentDay:
     obj = (
@@ -45,6 +46,7 @@ def upsert_sentiment_day(
     if obj:
         obj.score = score
         obj.article_cnt = article_cnt
+        obj.explanation = explanation
         obj.is_final = is_final
     else:
         obj = SentimentDay(
@@ -52,6 +54,7 @@ def upsert_sentiment_day(
             ticker=ticker,
             score=score,
             article_cnt=article_cnt,
+            explanation=explanation,
             is_final=is_final,
         )
         db.add(obj)

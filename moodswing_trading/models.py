@@ -51,6 +51,7 @@ class SentimentRecord(BaseModel):
     date: str
     score: float
     article_cnt: int
+    explanation: str | None = None
     is_final: bool
 
 

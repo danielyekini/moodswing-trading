@@ -27,4 +27,5 @@ async def get_sentiment(
         score=record.score,
         article_cnt=record.article_cnt,
         is_final=record.is_final,
+        explanation=record.explanation,
     )

@@ -26,6 +26,7 @@ class Article(Base):
     ts_pub = Column(DateTime)
     sentiment = Column(Integer)
     provider = Column(String)
+    weight = Column(Float, default=1.0)
     raw_json = Column(JSON)
 
     __table_args__ = (
@@ -40,6 +41,7 @@ class SentimentDay(Base):
     ticker = Column(String, primary_key=True)
     score = Column(Float)
     article_cnt = Column(Integer)
+    explanation = Column(Text)
     is_final = Column(Boolean, default=False)
 
     __table_args__ = (

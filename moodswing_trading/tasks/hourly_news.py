@@ -32,7 +32,7 @@ def ingest() -> None:
     from_dt = to_dt - timedelta(hours=1)
 
     for ticker in TICKERS:
-        articles = asyncio.run(news_service.fetch(ticker, from_dt, to_dt, 1))
+        articles = asyncio.run(news_service.collect(ticker, from_dt, to_dt, 1))
         if not articles:
             continue
         payload = {
