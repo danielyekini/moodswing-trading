@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Path, HTTPException
 
 from services.company import CompanyService
+from utils import cached_json_response
 
 router = APIRouter(
     prefix="/api/v1/company",
@@ -15,6 +16,7 @@ async def get_company(
 ):
     """Get static company profile."""
     try:
-        return await service.fetch_profile(ticker)
+        profile = await service.fetch_profile(ticker)
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return cached_json_response(profile, cache_seconds=86400)

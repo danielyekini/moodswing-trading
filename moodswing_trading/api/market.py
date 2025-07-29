@@ -3,6 +3,7 @@ from fastapi import APIRouter, WebSocket, Path, Query, HTTPException
 import asyncio
 
 from services.market import MarketService, HistoryDownloadError
+from utils import cached_json_response
 from models import Candle, Quote, Tick
 
 router = APIRouter(
@@ -28,7 +29,12 @@ async def get_history(
         candles = await service.fetch_history(ticker, start, end, interval)
     except HistoryDownloadError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
-    return {"ticker": ticker, "interval": interval, "candles": [c.model_dump() for c in candles]}
+    payload = {
+        "ticker": ticker,
+        "interval": interval,
+        "candles": [c.model_dump() for c in candles],
+    }
+    return cached_json_response(payload, cache_seconds=300)
 
 @router.get("/{ticker}/intraday", response_model=Quote)
 async def get_intraday(
