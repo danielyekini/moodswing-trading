@@ -21,3 +21,12 @@ async def get_universe():
         for t in settings.tickers
     ]
     return {"universe": universe}
+
+@router.get("/notice")
+async def get_notice():
+    """Return legal and risk disclaimers."""
+    text = (
+        "This service provides market data and sentiment information for\n"
+        "informational purposes only and does not constitute investment advice."
+    )
+    return {"notice": text}
