@@ -1,6 +1,8 @@
 import time
 from typing import Dict, Tuple
-from fastapi import Request, Response
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from models import ProblemDetails
 
 class SimpleRateLimiter:
     def __init__(self, limit: int = 60, window_seconds: int = 60):
@@ -29,14 +31,24 @@ class SimpleRateLimiter:
             "Retry-After": str(retry_after),
         }
 
+
 rate_limiter = SimpleRateLimiter()
+
 
 async def rate_limit_middleware(request: Request, call_next):
     key = request.client.host if request.client else "anonymous"
     count, reset, allowed = rate_limiter._check(key)
     if not allowed:
         headers = rate_limiter.headers(count, reset)
-        return Response(status_code=429, content="Too Many Requests", headers=headers)
+        problem = ProblemDetails(
+            title="Too Many Requests", status=429, detail="Rate limit exceeded"
+        )
+        return JSONResponse(
+            status_code=429,
+            content=problem.model_dump(),
+            headers=headers,
+            media_type="application/problem+json",
+        )
     response = await call_next(request)
     for k, v in rate_limiter.headers(count, reset).items():
         response.headers[k] = v
