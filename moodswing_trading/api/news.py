@@ -31,11 +31,20 @@ async def collect_news(
     
     return "Success"
 
-@router.get("/{ticker}/fetch")
+@router.get("/{ticker}")
 async def fetch_news(
     ticker: str = Path(..., min_length=1, max_length=4, regex=r"^[A-Z]+$"),
     order: str = Query("desc"),
+    limit: int = Query(50, gt=0, le=100),
+    cursor: str | None = Query(None),
 ):
-    """Fetch recent news articles for a ticker."""
-    articles = await service.fetch(ticker, order)
-    return {"ticker": ticker, "articles": [a.model_dump() for a in articles]}
+    """Fetch recent news articles for a ticker with cursor based pagination."""
+    articles, next_cur, prev_cur = await service.fetch(
+        ticker, order=order, limit=limit, cursor=cursor
+    )
+    return {
+        "ticker": ticker,
+        "articles": [a.model_dump() for a in articles],
+        "next_cursor": next_cur,
+        "prev_cursor": prev_cur,
+    }

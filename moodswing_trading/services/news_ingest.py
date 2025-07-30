@@ -111,24 +111,68 @@ class NewsIngestService:
 
         return articles
 
-    async def fetch(self, ticker: str, order: str = "desc") -> List[Article]:
-        """Fetch articles for ticker from the last 24h stored in DB."""
+    async def fetch(
+        self,
+        ticker: str,
+        order: str = "desc",
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> tuple[list[Article], str | None, str | None]:
+        """Fetch articles for ticker from the last 24h stored in DB using cursor pagination."""
 
-        def _query():
+        def _query() -> tuple[list[db_models.Article], str | None, str | None]:
             start = datetime.utcnow() - timedelta(days=1)
             with SessionLocal() as db:
-                q = (
-                    db.query(db_models.Article)
-                    .filter(db_models.Article.ticker == ticker.upper(), db_models.Article.ts_pub >= start)
+                q = db.query(db_models.Article).filter(
+                    db_models.Article.ticker == ticker.upper(),
+                    db_models.Article.ts_pub >= start,
                 )
+
+                # Apply cursor filter
+                if cursor:
+                    cur_dt = datetime.fromisoformat(cursor)
+                    if order == "asc":
+                        q = q.filter(db_models.Article.ts_pub > cur_dt)
+                    else:
+                        q = q.filter(db_models.Article.ts_pub < cur_dt)
+
+                # Ordering
                 if order == "asc":
                     q = q.order_by(db_models.Article.ts_pub.asc())
                 else:
                     q = q.order_by(db_models.Article.ts_pub.desc())
-                return q.all()
 
-        rows = await asyncio.to_thread(_query)
-        return [
+                # Fetch one extra row to know if next cursor exists
+                q_limit = (limit or 50) + 1
+                rows = q.limit(q_limit).all()
+
+                has_next = len(rows) > (limit or 50)
+                articles = rows[: limit or 50]
+
+                next_cursor = None
+                if has_next:
+                    next_cursor = articles[-1].ts_pub.isoformat()
+
+                prev_cursor = None
+                if articles:
+                    first_dt = articles[0].ts_pub
+                    # Check if there are rows before the first item
+                    pq = db.query(db_models.Article).filter(
+                        db_models.Article.ticker == ticker.upper(),
+                        db_models.Article.ts_pub >= start,
+                    )
+                    if order == "asc":
+                        pq = pq.filter(db_models.Article.ts_pub < first_dt)
+                    else:
+                        pq = pq.filter(db_models.Article.ts_pub > first_dt)
+                    prev_exists = pq.first() is not None
+                    if prev_exists:
+                        prev_cursor = first_dt.isoformat()
+
+                return articles, next_cursor, prev_cursor
+
+        rows, next_cursor, prev_cursor = await asyncio.to_thread(_query)
+        articles = [
             Article(
                 id=r.id,
                 headline=r.headline,
@@ -138,3 +182,5 @@ class NewsIngestService:
             )
             for r in rows
         ]
+
+        return articles, next_cursor, prev_cursor
