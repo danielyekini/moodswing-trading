@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 import math
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 from uuid import uuid4
 
@@ -61,10 +61,13 @@ class NewsIngestService:
                 title = re.sub(r"\s[-–—]\s.*", "", entry.get("title", ""))
                 ts_raw = entry.get("published")
                 ts = parse_date(ts_raw) or datetime.utcnow()
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                now = datetime.now(timezone.utc)
+                age_hours = max((now - ts).total_seconds() / 3600, 0.0)
                 source = entry.get("source", {}).get("title", "Unknown")
                 sentiment = await self.sentiment.score(title)
                 art_id = hashlib.sha256(entry.get("link", str(uuid4())).encode()).hexdigest()
-                age_hours = max((datetime.utcnow() - ts).total_seconds() / 3600, 0.0)
                 rank = PUBLISHER_RANK.get(source, DEFAULT_RANK)
                 time_factor = math.exp(-age_hours / DECAY_TAU)
                 weight = rank * time_factor
