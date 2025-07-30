@@ -50,7 +50,8 @@ def refresh() -> None:
             total_weight = sum(r.weight or 1.0 for r in rows)
             if total_weight == 0:
                 continue
-            score = sum((r.sentiment * (r.weight or 1.0)) for r in rows) / total_weight
+            raw = sum((r.sentiment * (r.weight or 1.0)) for r in rows) / total_weight
+            score = round((raw + 1) * 50, 1)
             top_rows = sorted(rows, key=lambda r: r.weight or 1.0, reverse=True)[:3]
             explanation = _summarize([r.headline for r in top_rows])
             rec = crud.upsert_sentiment_day(
