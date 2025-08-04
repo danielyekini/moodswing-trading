@@ -1,4 +1,9 @@
-"""Generate price forecasts and persist results."""
+"""Generate price forecasts and persist results.
+
+This task is used for both regular hourly predictions and the final
+end-of-day (EOD) run. The ``run_type`` argument determines which label is
+stored alongside each record.
+"""
 
 from __future__ import annotations
 
@@ -39,8 +44,15 @@ async def _predict(ticker: str) -> tuple[float, float]:
 
 
 @celery_app.task(name="hourly_predict")
-def run() -> None:
-    """Run prediction model and broadcast results."""
+def run(run_type: str = "HOURLY") -> None:
+    """Run prediction model and broadcast results.
+
+    Parameters
+    ----------
+    run_type:
+        Label applied to each prediction record. ``"HOURLY"`` for regular
+        intraday runs and ``"EOD"`` for the final end-of-day prediction.
+    """
 
     dt = datetime.utcnow().date()
     repo_root = Path(__file__).resolve().parents[1]
@@ -57,14 +69,17 @@ def run() -> None:
     for ticker in TICKERS:
         mu, sigma = asyncio.run(_predict(ticker))
         with SessionLocal() as db:
-            rec = crud.insert_prediction(
+            existing = crud.get_latest_prediction(db, ticker, dt)
+            if existing and existing.run_type == "EOD" and run_type == "HOURLY":
+                continue
+            rec = crud.upsert_prediction(
                 db,
                 ticker,
                 dt,
                 mu,
                 sigma,
                 model_version=model_version,
-                run_type="HOURLY",
+                run_type=run_type,
             )
         payload = {
             "ticker": ticker,

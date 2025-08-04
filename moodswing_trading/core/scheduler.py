@@ -17,7 +17,13 @@ def setup_periodic_tasks(app: Celery) -> None:
         },
         "hourly-predict": {
             "task": "hourly_predict",
-            "schedule": crontab(minute=0, hour="*"),
+            "schedule": crontab(minute=0, hour="0-20"),
+            "args": ("HOURLY",),
+        },
+        "eod-predict": {
+            "task": "hourly_predict",
+            "schedule": crontab(minute=5, hour=21),
+            "args": ("EOD",),
         },
         "partition-maintenance": {
             "task": "partition_maintenance",

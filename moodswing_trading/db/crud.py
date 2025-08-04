@@ -97,6 +97,45 @@ def insert_prediction(
     return pred
 
 
+def upsert_prediction(
+    db: Session,
+    ticker: str,
+    dt: date,
+    mu: float,
+    sigma: float,
+    run_ts: Optional[datetime] = None,
+    model_version: str = "",
+    run_type: str = "",
+) -> Prediction:
+    """Insert or update the latest prediction for ``ticker`` on ``dt``."""
+
+    run_ts = run_ts or datetime.utcnow()
+    obj = (
+        db.query(Prediction)
+        .filter(Prediction.ticker == ticker, Prediction.dt == dt)
+        .one_or_none()
+    )
+    if obj:
+        obj.mu = mu
+        obj.sigma = sigma
+        obj.run_ts = run_ts
+        obj.model_version = model_version
+        obj.run_type = run_type
+    else:
+        obj = Prediction(
+            ticker=ticker,
+            dt=dt,
+            mu=mu,
+            sigma=sigma,
+            run_ts=run_ts,
+            model_version=model_version,
+            run_type=run_type,
+        )
+        db.add(obj)
+    db.commit()
+    return obj
+
+
 def get_latest_prediction(db: Session, ticker: str, dt: date) -> Optional[Prediction]:
     return (
         db.query(Prediction)
