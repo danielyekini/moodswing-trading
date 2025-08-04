@@ -14,9 +14,9 @@ async def get_universe():
     universe = [
         {
             "ticker": t,
-            "name": f"{t} Inc.",
-            "sector": "Unknown",
-            "listed_since": None,
+            # "name": f"{t} Inc.",
+            # "sector": "Unknown",
+            # "listed_since": None,
         }
         for t in settings.tickers
     ]

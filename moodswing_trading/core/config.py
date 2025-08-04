@@ -1,23 +1,26 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import List
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
-    database_url: str = Field("sqlite:///./moodswing.db", env="DATABASE_URL")
-    redis_url: str = Field("redis://localhost:6379/0", env="REDIS_URL")
-    log_level: str = Field("INFO", env="LOG_LEVEL")
-    # broker_url: str = Field(None, env="BROKER_URL")
-    # result_backend: str = Field(None, env="RESULT_BACKEND")
-    tickers_env: str = Field("", env="TICKERS")
-    allowed_origins_env: str = Field("*", env="ALLOWED_ORIGINS")
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parent.parent.parent / ".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    database_url: str = Field("sqlite:///./moodswing.db", alias="DATABASE_URL")
+    redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
+    log_level: str = Field("INFO", alias="LOG_LEVEL")
+    # broker_url: str = Field(None, alias="BROKER_URL")
+    # result_backend: str = Field(None, alias="RESULT_BACKEND")
+    tickers_env: str = Field("", alias="TICKERS")
+    allowed_origins_env: str = Field("*", alias="ALLOWED_ORIGINS")
 
     @property
     def celery_broker(self) -> str:
