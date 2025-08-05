@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import (
     create_engine, Column, String, Text, Integer, Date, DateTime, Float,
-    Boolean, Numeric, JSON, Index
+    Boolean, Numeric, JSON, Index, text
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -31,6 +31,7 @@ class Article(Base):
 
     __table_args__ = (
         Index("article_ts_idx", "ticker", "ts_pub"),
+        {"postgresql_partition_by": "LIST (ticker)"},
     )
 
 
@@ -46,6 +47,7 @@ class SentimentDay(Base):
 
     __table_args__ = (
         Index("sentiment_day_final_idx", "ticker", "dt"),
+        {"postgresql_partition_by": "LIST (ticker)"},
     )
 
 
@@ -62,9 +64,28 @@ class Prediction(Base):
 
     __table_args__ = (
         Index("prediction_latest_idx", "ticker", "run_ts"),
+        {"postgresql_partition_by": "LIST (ticker)"},
     )
 
 
 def init_db() -> None:
     """Create tables if they don't exist."""
     Base.metadata.create_all(bind=engine)
+
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_partman"))
+        conn.execute(
+            text(
+                "SELECT partman.create_parent('public.article', 'ticker', '1', p_type := 'list')"
+            )
+        )
+        conn.execute(
+            text(
+                "SELECT partman.create_parent('public.sentiment_day', 'ticker', '1', p_type := 'list')"
+            )
+        )
+        conn.execute(
+            text(
+                "SELECT partman.create_parent('public.prediction', 'ticker', '1', p_type := 'list')"
+            )
+        )
