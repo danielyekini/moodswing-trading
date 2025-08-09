@@ -9,9 +9,12 @@ import redis
 
 from .config import get_settings
 from .scheduler import setup_periodic_tasks
-from .tracing import setup_tracing
+from .telemetry import setup_telemetry
+from opentelemetry.instrumentation.celery import CeleryInstrumentor
 
 settings = get_settings()
+setup_telemetry("moodswing-trading-worker")
+CeleryInstrumentor().instrument()
 
 # Initialize OpenTelemetry tracing for Celery workers and producers
 setup_tracing(service_name="moodswing-celery")

@@ -9,7 +9,8 @@ from models import ProblemDetails
 from core.logging import setup_logging
 from core.config import get_settings
 from core.ratelimit import rate_limit_middleware
-from core.tracing import setup_tracing
+from core.telemetry import setup_telemetry
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 import uuid
 from db.models import engine
 from db.ensure_partitions import ensure_default_partitions
@@ -18,9 +19,11 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 setup_logging()
 setup_tracing(service_name="moodswing-api")
 settings = get_settings()
+setup_telemetry("moodswing-trading-api")
 
 
 app = FastAPI()
+setup_telemetry("moodswing-trading-api")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
