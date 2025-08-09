@@ -9,8 +9,12 @@ import redis
 
 from .config import get_settings
 from .scheduler import setup_periodic_tasks
+from .tracing import setup_tracing
 
 settings = get_settings()
+
+# Initialize OpenTelemetry tracing for Celery workers and producers
+setup_tracing(service_name="moodswing-celery")
 
 REDIS = redis.Redis.from_url(settings.redis_url)
 DEAD_LETTER_KEY = "celery:dead_letter"
@@ -30,6 +34,15 @@ celery_app.conf.update(
     enable_utc=True,
     task_send_sent_event=True,
 )
+
+# OpenTelemetry: instrument Celery publish/consume paths
+try:
+    from opentelemetry.instrumentation.celery import CeleryInstrumentor
+
+    CeleryInstrumentor().instrument()
+except Exception:
+    # Best-effort; worker continues even if instrumentation isn't available
+    pass
 
 TASK_FAILURES = Counter(
     "task_failures_total",

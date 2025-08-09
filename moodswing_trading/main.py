@@ -9,11 +9,14 @@ from models import ProblemDetails
 from core.logging import setup_logging
 from core.config import get_settings
 from core.ratelimit import rate_limit_middleware
+from core.tracing import setup_tracing
 import uuid
 from db.models import engine
 from db.ensure_partitions import ensure_default_partitions
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 setup_logging()
+setup_tracing(service_name="moodswing-api")
 settings = get_settings()
 
 
@@ -26,6 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.middleware("http")(rate_limit_middleware)
+
+# OpenTelemetry: instrument FastAPI app (exclude common health/metrics paths)
+FastAPIInstrumentor.instrument_app(app, excluded_urls="/metrics,/healthz")
 
 # Prometheus metrics
 REQUEST_COUNT = Counter(
