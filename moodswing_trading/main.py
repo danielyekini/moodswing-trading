@@ -6,11 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 from models import ProblemDetails
-from db.models import init_db
 from core.logging import setup_logging
 from core.config import get_settings
 from core.ratelimit import rate_limit_middleware
 import uuid
+from db.models import engine
+from db.ensure_partitions import ensure_default_partitions
 
 setup_logging()
 settings = get_settings()
@@ -25,7 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.middleware("http")(rate_limit_middleware)
-init_db()
 
 # Prometheus metrics
 REQUEST_COUNT = Counter(
@@ -48,6 +48,16 @@ async def metrics_middleware(request: Request, call_next):
     REQUEST_COUNT.labels(request.method, request.url.path).inc()
     REQUEST_LATENCY.labels(request.url.path).observe(duration)
     return response
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    # Best-effort safeguard to ensure default partitions exist in the target DB
+    try:
+        ensure_default_partitions(engine)
+    except Exception:
+        # Do not block startup; detailed errors will show up on first use if any
+        pass
 
 app.include_router(market.router)
 app.include_router(news.router)

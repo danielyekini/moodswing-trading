@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import (
     create_engine, Column, String, Text, Integer, Date, DateTime, Float,
-    Boolean, Numeric, JSON, Index, text
+    Boolean, Numeric, JSON, Index
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -21,10 +21,10 @@ class Article(Base):
     __tablename__ = "article"
 
     id = Column(String, primary_key=True)
-    ticker = Column(String, nullable=False)
+    ticker = Column(String, primary_key=True)
     headline = Column(Text)
-    ts_pub = Column(DateTime)
-    sentiment = Column(Integer)
+    ts_pub = Column(DateTime(timezone=True), nullable=False)
+    sentiment = Column(Integer, nullable=False)
     provider = Column(String)
     weight = Column(Float, default=1.0)
     raw_json = Column(JSON)
@@ -40,13 +40,14 @@ class SentimentDay(Base):
 
     dt = Column(Date, primary_key=True)
     ticker = Column(String, primary_key=True)
-    score = Column(Float)
-    article_cnt = Column(Integer)
+    score = Column(Float, nullable=False)
+    article_cnt = Column(Integer, nullable=False)
     explanation = Column(Text)
     is_final = Column(Boolean, default=False)
+    provisional_ts = Column(DateTime(timezone=True))
 
     __table_args__ = (
-        Index("sentiment_day_final_idx", "ticker", "dt"),
+        Index("sentiment_day_dt_idx", "ticker", "dt"),
         {"postgresql_partition_by": "LIST (ticker)"},
     )
 
@@ -55,37 +56,15 @@ class Prediction(Base):
     __tablename__ = "prediction"
 
     ticker = Column(String, primary_key=True)
-    run_ts = Column(DateTime, primary_key=True)
+    run_ts = Column(DateTime(timezone=True), primary_key=True)
     dt = Column(Date)
-    mu = Column(Numeric(10, 2))
-    sigma = Column(Numeric(10, 2))
-    model_version = Column(String)
+    mu = Column(Numeric(10, 2), nullable=False)
+    sigma = Column(Numeric(10, 2), nullable=False)
+    model_version = Column(String, nullable=False)
     run_type = Column(String)
 
     __table_args__ = (
-        Index("prediction_latest_idx", "ticker", "run_ts"),
+        Index("prediction_run_ts_idx", "ticker", "run_ts"),
         {"postgresql_partition_by": "LIST (ticker)"},
     )
 
-
-def init_db() -> None:
-    """Create tables if they don't exist."""
-    Base.metadata.create_all(bind=engine)
-
-    with engine.begin() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_partman"))
-        conn.execute(
-            text(
-                "SELECT partman.create_parent('public.article', 'ticker', '1', p_type := 'list')"
-            )
-        )
-        conn.execute(
-            text(
-                "SELECT partman.create_parent('public.sentiment_day', 'ticker', '1', p_type := 'list')"
-            )
-        )
-        conn.execute(
-            text(
-                "SELECT partman.create_parent('public.prediction', 'ticker', '1', p_type := 'list')"
-            )
-        )
