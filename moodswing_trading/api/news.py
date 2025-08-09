@@ -2,6 +2,7 @@ from fastapi import APIRouter, Path, Query
 from datetime import datetime
 
 from services.news_ingest import NewsIngestService
+from utils import cached_json_response
 
 router = APIRouter(
     prefix="/api/v1/news",
@@ -42,9 +43,10 @@ async def fetch_news(
     articles, next_cur, prev_cur = await service.fetch(
         ticker, order=order, limit=limit, cursor=cursor
     )
-    return {
+    payload = {
         "ticker": ticker,
         "articles": [a.model_dump() for a in articles],
         "next_cursor": next_cur,
         "prev_cursor": prev_cur,
     }
+    return cached_json_response(payload, cache_seconds=300)
