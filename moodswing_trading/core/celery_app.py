@@ -9,8 +9,12 @@ import redis
 
 from .config import get_settings
 from .scheduler import setup_periodic_tasks
+from .telemetry import setup_telemetry
+from opentelemetry.instrumentation.celery import CeleryInstrumentor
 
 settings = get_settings()
+setup_telemetry("moodswing-trading-worker")
+CeleryInstrumentor().instrument()
 
 REDIS = redis.Redis.from_url(settings.redis_url)
 DEAD_LETTER_KEY = "celery:dead_letter"
