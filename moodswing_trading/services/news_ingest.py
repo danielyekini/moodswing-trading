@@ -80,6 +80,7 @@ class NewsIngestService:
                         url=link,
                         ts_pub=ts.isoformat() + "Z",
                         sentiment=sentiment,
+                        weight=weight,
                     )
                 )
                 db_records.append(
@@ -171,8 +172,10 @@ class NewsIngestService:
                 id=r.id,
                 headline=r.headline,
                 source=r.provider,
+                url=r.url,
                 ts_pub=r.ts_pub.isoformat() + "Z",
                 sentiment=r.sentiment,
+                weight=r.weight,
             )
             for r in rows
         ]

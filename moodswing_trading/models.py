@@ -43,6 +43,7 @@ class Article(BaseModel):
     url: str
     ts_pub: str
     sentiment: int
+    weight: float
 
 class SentimentRecord(BaseModel):
     """Aggregated sentiment score for a trading day."""
