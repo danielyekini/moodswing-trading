@@ -89,7 +89,7 @@ async def stream_ticks(websocket: WebSocket, ticker: str):
                 if not isinstance(reply, dict) or reply.get("type") != "pong":
                     break
                 continue
-            await websocket.send_json(msg.dict())
+            await websocket.send_json(msg.model_dump())
     finally:
         await websocket.close()
 
