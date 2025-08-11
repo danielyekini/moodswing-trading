@@ -59,7 +59,10 @@ async def get_intraday(
     return quote
 
 @router.websocket("/{ticker}/stream")
-async def stream_ticks(websocket: WebSocket, ticker: str):
+async def stream_ticks(
+    websocket: WebSocket,
+    ticker: str = Path(..., min_length=1, max_length=5, regex=r"^[A-Z]+$")
+):
     """Real-time tick push (JSON frames)."""
     await websocket.accept()
     try:
