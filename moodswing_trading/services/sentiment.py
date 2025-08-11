@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from transformers import pipeline
-from datetime import date
+from datetime import date, timedelta
 from typing import AsyncGenerator, Any, Union
 import contextlib
 import json
@@ -41,6 +41,15 @@ class SentimentService:
         def _query():
             with SessionLocal() as db:
                 return crud.get_sentiment_day(db, dt, ticker.upper())
+
+        return await asyncio.to_thread(_query)
+
+    async def get_latest(self, ticker: str):
+        """Fetch latest available sentiment record for ticker from the DB."""
+
+        def _query():
+            with SessionLocal() as db:
+                return crud.get_latest_sentiment_day(db, ticker.upper())
 
         return await asyncio.to_thread(_query)
     

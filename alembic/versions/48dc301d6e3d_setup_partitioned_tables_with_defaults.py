@@ -16,9 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute(
-        "DROP EXTENSION IF EXISTS pg_partman CASCADE; DROP SCHEMA IF EXISTS partman CASCADE;"
-    )
+    # Ensure native Postgres partitioned parents exist (no pg_partman dependency).
 
     op.execute(
         """

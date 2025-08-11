@@ -1,4 +1,7 @@
 from fastapi import FastAPI, Request, status, HTTPException
+import os, sys
+# Ensure package-relative imports like `api`, `models`, `services`, `core` work in any runner
+sys.path.append(os.path.dirname(__file__))
 from fastapi.exceptions import RequestValidationError
 from api import company, market, news, predict, sentiment, system
 from fastapi.responses import PlainTextResponse, JSONResponse, Response

@@ -1,0 +1,53 @@
+name: DB Smoke (Partitions)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  db-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres" 
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r moodswing_trading/requirements.txt
+
+      - name: Wait for Postgres
+        run: |
+          python scripts/wait_for_port.py localhost 5432 60
+
+      - name: Run Alembic migrations
+        env:
+          DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/postgres
+        run: |
+          alembic upgrade head
+
+      - name: Verify partitioned parents and defaults
+        env:
+          DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/postgres
+        run: |
+          python scripts/db_smoke.py
+
+

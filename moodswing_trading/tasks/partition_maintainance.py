@@ -1,4 +1,9 @@
-"""Daily Postgres partition maintenance via pg_partman."""
+"""Daily Postgres maintenance (no pg_partman).
+
+For native LIST partitioned parents with DEFAULT partitions, there is little to
+"maintain". This task is kept as a placeholder to perform optional hygiene like
+ANALYZE/VACUUM or index refreshes if needed in the future.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +18,8 @@ setup_logging()
 
 @celery_app.task(name="partition_maintenance")
 def run() -> None:
-    """Invoke pg_partman maintenance procedure."""
+    """No-op placeholder: run basic VACUUM ANALYZE on partitioned parents."""
     with engine.begin() as conn:
-        conn.execute(text("SELECT partman.run_maintenance();"))
+        conn.execute(text("VACUUM (ANALYZE) article;"))
+        conn.execute(text("VACUUM (ANALYZE) sentiment_day;"))
+        conn.execute(text("VACUUM (ANALYZE) prediction;"))

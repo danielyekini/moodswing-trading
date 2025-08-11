@@ -80,7 +80,7 @@ class MarketService:
     async def tick_stream(
         self,
         ticker: str,
-        interval: float = 1.0,
+        interval: float = 5.0,
         ping_interval: float = 30.0,
     ) -> AsyncGenerator[Union[Tick, str], None]:
         """Yield live ticks and periodic ``"PING"`` tokens.

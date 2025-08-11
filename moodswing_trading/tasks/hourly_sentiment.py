@@ -51,8 +51,16 @@ def refresh() -> None:
             if total_weight == 0:
                 continue
             raw = sum((r.sentiment * (r.weight or 1.0)) for r in rows) / total_weight
-            score = round((raw + 1) * 50, 1)
-            top_rows = sorted(rows, key=lambda r: r.weight or 1.0, reverse=True)[:3]
+            today_score = round((raw + 1) * 50, 1)
+
+            # Blend with yesterday's final score per spec: alpha=0.6
+            yest = crud.get_sentiment_day(db, target_date - timedelta(days=1), ticker)
+            if yest and yest.is_final:
+                score = round(0.6 * today_score + 0.4 * yest.score, 1)
+            else:
+                score = today_score
+
+            top_rows = sorted(rows, key=lambda r: r.weight or 1.0, reverse=True)[:5]
             explanation = _summarize([r.headline for r in top_rows])
             rec = crud.upsert_sentiment_day(
                 db,

@@ -29,9 +29,13 @@ def setup_periodic_tasks(app: Celery) -> None:
             "task": "partition_maintenance",
             "schedule": crontab(minute=0, hour=2),
         },
-        "export-cold-partitions": {
-            "task": "export_cold_partitions",
-            "schedule": crontab(minute=30, hour=3),
+        # "export-cold-partitions": {
+        #     "task": "export_cold_partitions",
+        #     "schedule": crontab(minute=30, hour=3),
+        # },
+        "cache-housekeeping": {
+            "task": "cache_housekeeping",
+            "schedule": crontab(minute=0, hour=4),
         },
     }
 

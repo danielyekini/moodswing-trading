@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     database_url: str = Field("sqlite:///./moodswing.db", alias="DATABASE_URL")
     redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
-    # broker_url: str = Field(None, alias="BROKER_URL")
-    # result_backend: str = Field(None, alias="RESULT_BACKEND")
+    broker_url: str | None = Field(None, alias="BROKER_URL")
+    result_backend: str | None = Field(None, alias="RESULT_BACKEND")
     tickers_env: str = Field("", alias="TICKERS")
     allowed_origins_env: str = Field("*", alias="ALLOWED_ORIGINS")
 

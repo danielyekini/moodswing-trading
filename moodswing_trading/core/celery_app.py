@@ -10,6 +10,7 @@ import redis
 from .config import get_settings
 from .scheduler import setup_periodic_tasks
 from .telemetry import setup_telemetry
+from .tracing import setup_tracing
 from opentelemetry.instrumentation.celery import CeleryInstrumentor
 
 settings = get_settings()

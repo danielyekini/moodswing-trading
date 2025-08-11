@@ -70,6 +70,15 @@ def get_sentiment_day(db: Session, dt: date, ticker: str) -> Optional[SentimentD
     )
 
 
+def get_latest_sentiment_day(db: Session, ticker: str) -> Optional[SentimentDay]:
+    return (
+        db.query(SentimentDay)
+        .filter(SentimentDay.ticker == ticker)
+        .order_by(SentimentDay.dt.desc())
+        .first()
+    )
+
+
 # --- Prediction Helpers --------------------------------------------------
 
 def insert_prediction(

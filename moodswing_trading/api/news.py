@@ -3,6 +3,7 @@ from datetime import datetime
 
 from services.news_ingest import NewsIngestService
 from utils import cached_json_response
+from utils.cache import get_json as cache_get_json, set_json as cache_set_json
 
 router = APIRouter(
     prefix="/api/v1/news",
@@ -40,6 +41,17 @@ async def fetch_news(
     cursor: str | None = Query(None),
 ):
     """Fetch recent news articles for a ticker with cursor based pagination."""
+    # Redis cache for the cursorless first page only (most common path)
+    cache_key = None
+    if cursor is None:
+        cache_key = f"news:{ticker.upper()}:order={order}:limit={limit}"
+        try:
+            cached = await cache_get_json(cache_key)
+        except Exception:
+            cached = None
+        if cached:
+            return cached_json_response(cached, cache_seconds=60)
+
     articles, next_cur, prev_cur = await service.fetch(
         ticker, order=order, limit=limit, cursor=cursor
     )
@@ -49,4 +61,9 @@ async def fetch_news(
         "next_cursor": next_cur,
         "prev_cursor": prev_cur,
     }
-    return cached_json_response(payload, cache_seconds=300)
+    if cache_key:
+        try:
+            await cache_set_json(cache_key, payload, 60)
+        except Exception:
+            pass
+    return cached_json_response(payload, cache_seconds=60)
