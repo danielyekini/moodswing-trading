@@ -41,7 +41,7 @@ def assert_default_exists(conn, table: str) -> None:
             JOIN pg_class c ON c.oid = i.inhrelid
             JOIN pg_class p ON p.oid = i.inhparent
             WHERE p.relname = :parent
-            AND pg_get_expr(relpartbound, c.oid) = 'DEFAULT'
+            AND pg_get_expr(c.relpartbound, c.oid) = 'DEFAULT'
             """
         ),
         {"parent": table},
