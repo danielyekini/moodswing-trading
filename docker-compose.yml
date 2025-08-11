@@ -48,6 +48,24 @@ services:
     restart: unless-stopped
     # The image's entrypoint already waits for DB and runs Alembic before starting Uvicorn
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mst-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      TICKERS: AAPL,MSFT,GOOGL
+    entrypoint: ["celery", "-A", "moodswing_trading.core.celery_app:celery_app", "worker", "--loglevel=INFO"]
+    restart: unless-stopped
+
 volumes:
   pgdata: {}
 
