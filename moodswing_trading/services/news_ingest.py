@@ -66,8 +66,9 @@ class NewsIngestService:
                 now = datetime.now(timezone.utc)
                 age_hours = max((now - ts).total_seconds() / 3600, 0.0)
                 source = entry.get("source", {}).get("title", "Unknown")
+                link = entry.get("link", "")
                 sentiment = await self.sentiment.score(title)
-                art_id = hashlib.sha256(entry.get("link", str(uuid4())).encode()).hexdigest()
+                art_id = hashlib.sha256((link or str(uuid4())).encode()).hexdigest()
                 rank = PUBLISHER_RANK.get(source, DEFAULT_RANK)
                 time_factor = math.exp(-age_hours / DECAY_TAU)
                 weight = rank * time_factor
@@ -76,6 +77,7 @@ class NewsIngestService:
                         id=art_id,
                         headline=title,
                         source=source,
+                        url=link,
                         ts_pub=ts.isoformat() + "Z",
                         sentiment=sentiment,
                     )
@@ -88,6 +90,7 @@ class NewsIngestService:
                         ts_pub=ts,
                         sentiment=sentiment,
                         provider=source,
+                        url=link,
                         weight=weight,
                         raw_json=entry,
                     )
@@ -131,16 +134,10 @@ class NewsIngestService:
                 # Apply cursor filter
                 if cursor:
                     cur_dt = datetime.fromisoformat(cursor)
-                    if order == "asc":
-                        q = q.filter(db_models.Article.ts_pub > cur_dt)
-                    else:
-                        q = q.filter(db_models.Article.ts_pub < cur_dt)
+                    q = q.filter(db_models.Article.ts_pub < cur_dt)
 
-                # Ordering
-                if order == "asc":
-                    q = q.order_by(db_models.Article.ts_pub.asc())
-                else:
-                    q = q.order_by(db_models.Article.ts_pub.desc())
+                # Enforce newest-first ordering per spec
+                q = q.order_by(db_models.Article.ts_pub.desc())
 
                 # Fetch one extra row to know if next cursor exists
                 q_limit = (limit or 50) + 1
@@ -161,10 +158,7 @@ class NewsIngestService:
                         db_models.Article.ticker == ticker.upper(),
                         db_models.Article.ts_pub >= start,
                     )
-                    if order == "asc":
-                        pq = pq.filter(db_models.Article.ts_pub < first_dt)
-                    else:
-                        pq = pq.filter(db_models.Article.ts_pub > first_dt)
+                    pq = pq.filter(db_models.Article.ts_pub > first_dt)
                     prev_exists = pq.first() is not None
                     if prev_exists:
                         prev_cursor = first_dt.isoformat()

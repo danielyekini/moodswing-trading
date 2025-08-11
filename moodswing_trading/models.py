@@ -40,6 +40,7 @@ class Article(BaseModel):
     id: str
     headline: str
     source: str
+    url: str
     ts_pub: str
     sentiment: int
 

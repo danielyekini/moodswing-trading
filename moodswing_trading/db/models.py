@@ -26,6 +26,7 @@ class Article(Base):
     ts_pub = Column(DateTime(timezone=True), nullable=False)
     sentiment = Column(Integer, nullable=False)
     provider = Column(String)
+    url = Column(Text)
     weight = Column(Float, default=1.0)
     raw_json = Column(JSON)
 

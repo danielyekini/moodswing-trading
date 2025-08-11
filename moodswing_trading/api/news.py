@@ -14,7 +14,7 @@ service = NewsIngestService()
 
 @router.get("/{ticker}/collect")
 async def collect_news(
-    ticker: str = Path(..., min_length=1, max_length=4, regex=r"^[A-Z]+$"),
+    ticker: str = Path(..., min_length=1, max_length=5, regex=r"^[A-Z]+$"),
     from_: str = Query(None, alias="from"),
     to: str = Query(None),
     min_count: int = Query(10),
@@ -35,8 +35,7 @@ async def collect_news(
 
 @router.get("/{ticker}")
 async def fetch_news(
-    ticker: str = Path(..., min_length=1, max_length=4, regex=r"^[A-Z]+$"),
-    order: str = Query("desc"),
+    ticker: str = Path(..., min_length=1, max_length=5, regex=r"^[A-Z]+$"),
     limit: int = Query(50, gt=0, le=100),
     cursor: str | None = Query(None),
 ):
@@ -44,7 +43,7 @@ async def fetch_news(
     # Redis cache for the cursorless first page only (most common path)
     cache_key = None
     if cursor is None:
-        cache_key = f"news:{ticker.upper()}:order={order}:limit={limit}"
+        cache_key = f"news:{ticker.upper()}:order=desc:limit={limit}"
         try:
             cached = await cache_get_json(cache_key)
         except Exception:
@@ -53,7 +52,7 @@ async def fetch_news(
             return cached_json_response(cached, cache_seconds=60)
 
     articles, next_cur, prev_cur = await service.fetch(
-        ticker, order=order, limit=limit, cursor=cursor
+        ticker, order="desc", limit=limit, cursor=cursor
     )
     payload = {
         "ticker": ticker,

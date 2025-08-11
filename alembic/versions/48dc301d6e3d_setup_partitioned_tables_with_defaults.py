@@ -27,6 +27,7 @@ def upgrade() -> None:
             ts_pub TIMESTAMPTZ NOT NULL,
             sentiment SMALLINT NOT NULL,
             provider TEXT,
+            url TEXT,
             weight REAL,
             raw_json JSONB,
             PRIMARY KEY (id, ticker)
