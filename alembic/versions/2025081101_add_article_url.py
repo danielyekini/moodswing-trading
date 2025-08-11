@@ -16,14 +16,45 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Idempotent add: only add if the column does not yet exist
+    # Idempotent add with explicit existence checks for robustness
     conn = op.get_bind()
-    conn.execute(sa.text('ALTER TABLE article ADD COLUMN IF NOT EXISTS url TEXT'))
-    # Ensure default partition also has the column (if using a default partition)
+
+    # Add to parent table if missing
+    exists_parent = conn.execute(
+        sa.text(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'article' AND column_name = 'url'
+            """
+        )
+    ).scalar()
+    if not exists_parent:
+        try:
+            conn.execute(sa.text("ALTER TABLE article ADD COLUMN url TEXT"))
+        except Exception:
+            # Ignore if concurrently added or other non-fatal race
+            pass
+
+    # Add to default partition if it exists and column is missing
     try:
-        conn.execute(sa.text('ALTER TABLE article_default ADD COLUMN IF NOT EXISTS url TEXT'))
+        has_partition = conn.execute(
+            sa.text("SELECT to_regclass('public.article_default')")
+        ).scalar()
+        if has_partition:
+            exists_part = conn.execute(
+                sa.text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'article_default' AND column_name = 'url'
+                    """
+                )
+            ).scalar()
+            if not exists_part:
+                conn.execute(sa.text("ALTER TABLE article_default ADD COLUMN url TEXT"))
     except Exception:
-        # In environments without a default partition, ignore
+        # Ignore if partition lookup fails or permissions differ
         pass
 
 
