@@ -1,0 +1,104 @@
+.landing-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navigation */
+.navbar {
+  height: 80px;
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Hero Section */
+.hero-section {
+  min-height: 600px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 60px 40px;
+}
+
+/* Stats Section */
+.stats-section {
+  height: 200px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* How It Works */
+.how-it-works {
+  min-height: 400px;
+  width: 100%;
+  padding: 60px 40px;
+}
+
+/* API Quickstart */
+.api-quickstart {
+  min-height: 500px;
+  width: 100%;
+  padding: 60px 40px;
+}
+
+/* Target Audience */
+.target-audience {
+  min-height: 400px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  padding: 60px 40px;
+}
+
+/* FAQ Section */
+.faq-section {
+  min-height: 400px;
+  width: 100%;
+  padding: 60px 40px;
+}
+
+/* Footer CTA */
+.footer-cta {
+  height: 300px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 40px;
+}
+
+/* Footer */
+.footer {
+  height: 100px;
+  width: 100%;
+  margin-top: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-section {
+    grid-template-columns: 1fr;
+    min-height: 500px;
+    padding: 40px 20px;
+  }
+  
+  .target-audience {
+    grid-template-columns: 1fr;
+    padding: 40px 20px;
+  }
+  
+  .how-it-works,
+  .api-quickstart,
+  .faq-section,
+  .footer-cta {
+    padding: 40px 20px;
+  }
+}
