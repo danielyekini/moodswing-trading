@@ -9,7 +9,10 @@ from core.config import get_settings
 
 settings = get_settings()
 
+# Ensure we have a valid database URL, defaulting to SQLite if empty/invalid
 DATABASE_URL = settings.database_url
+if not DATABASE_URL or not DATABASE_URL.strip():
+    DATABASE_URL = "sqlite:///./moodswing.db"
 
 engine = create_engine(DATABASE_URL, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

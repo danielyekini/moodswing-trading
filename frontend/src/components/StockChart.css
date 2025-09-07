@@ -1,0 +1,19 @@
+/* Stock Chart Component Styles */
+.primary-chart {
+  height: 450px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .primary-chart {
+    height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .primary-chart {
+    height: 300px;
+  }
+}

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # App environment: development, staging, production
+    environment: str = Field("development", alias="ENVIRONMENT")
+    # Database connection string. Defaults to local SQLite for dev.
     database_url: str = Field("sqlite:///./moodswing.db", alias="DATABASE_URL")
     redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
@@ -42,4 +45,15 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    # Normalize blank/whitespace DATABASE_URL to the dev default
+    if not (settings.database_url or "").strip():
+        settings.database_url = "sqlite:///./moodswing.db"
+    # Enforce Postgres in production to avoid accidental SQLite usage
+    if settings.environment.lower() in {"prod", "production"}:
+        if settings.database_url.startswith("sqlite"):
+            raise ValueError(
+                "DATABASE_URL must be set to a Postgres URL in production. "
+                "Set ENVIRONMENT=production and provide DATABASE_URL=postgresql+psycopg2://user:pass@host:5432/dbname"
+            )
+    return settings
