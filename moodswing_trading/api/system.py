@@ -1,26 +1,18 @@
 from fastapi import APIRouter
-from core.config import get_settings
+from services.universe import UniverseService
 
 router = APIRouter(
     prefix="/api/v1/system",
     tags=["system"],
 )
 
-settings = get_settings()
+universe = UniverseService()
 
 @router.get("/universe")
 async def get_universe():
-    """Return configured trading universe."""
-    universe = [
-        {
-            "ticker": t,
-            # "name": f"{t} Inc.",
-            # "sector": "Unknown",
-            # "listed_since": None,
-        }
-        for t in settings.tickers
-    ]
-    return {"universe": universe}
+    """Return current trading universe from the database."""
+    tickers = universe.list_tickers(active_only=True)
+    return {"universe": [{"ticker": t} for t in tickers]}
 
 @router.get("/notice")
 async def get_notice():

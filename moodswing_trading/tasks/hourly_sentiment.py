@@ -8,10 +8,10 @@ from datetime import datetime, timedelta
 import redis
 
 from moodswing_trading.core.celery_app import celery_app
-from moodswing_trading.core.config import get_settings
 from moodswing_trading.core.logging import setup_logging
 from db import crud, models as db_models
 from db.models import SessionLocal
+from services.universe import UniverseService
 
 def _summarize(headlines: list[str]) -> str:
     """Return a short summary of headlines (placeholder for LLM)."""
@@ -19,10 +19,11 @@ def _summarize(headlines: list[str]) -> str:
     return text[:120]
 
 setup_logging()
+from moodswing_trading.core.config import get_settings
 settings = get_settings()
 
 REDIS = redis.Redis.from_url(settings.redis_url)
-TICKERS = settings.tickers
+universe = UniverseService()
 
 @celery_app.task(name="hourly_sentiment_refresh")
 def refresh() -> None:
@@ -35,7 +36,8 @@ def refresh() -> None:
     end = start + timedelta(days=1)
 
     with SessionLocal() as db:
-        for ticker in TICKERS:
+        tickers = universe.list_tickers(active_only=True)
+        for ticker in tickers:
             rows = (
                 db.query(db_models.Article)
                 .filter(

@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", alias="LOG_LEVEL")
     broker_url: str | None = Field(None, alias="BROKER_URL")
     result_backend: str | None = Field(None, alias="RESULT_BACKEND")
-    tickers_env: str = Field("", alias="TICKERS")
     allowed_origins_env: str = Field("*", alias="ALLOWED_ORIGINS")
 
     @property
@@ -32,10 +31,6 @@ class Settings(BaseSettings):
     @property
     def celery_backend(self) -> str:
         return self.result_backend or self.redis_url
-
-    @property
-    def tickers(self) -> List[str]:
-        return [t.strip().upper() for t in self.tickers_env.split(",") if t.strip()]
 
     @property
     def allowed_origins(self) -> List[str]:

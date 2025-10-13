@@ -44,6 +44,7 @@ class Article(BaseModel):
     ts_pub: str
     sentiment: int
     weight: float
+    source_domain: str | None = None
 
 class SentimentRecord(BaseModel):
     """Aggregated sentiment score for a trading day."""

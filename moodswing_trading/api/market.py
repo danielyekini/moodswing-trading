@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from fastapi import APIRouter, WebSocket, Path, Query, HTTPException
 import asyncio
 
@@ -7,6 +7,8 @@ from utils import cached_json_response
 from models import Candle, Quote, Tick
 from utils.cache import get_json as cache_get_json, set_json as cache_set_json
 from core.ws_ratelimit import WsRateLimiter
+from services.universe import UniverseService
+from services.news_ingest import NewsIngestService
 
 router = APIRouter(
     prefix="/api/v1/stocks",
@@ -14,6 +16,8 @@ router = APIRouter(
 )
 
 service = MarketService()
+_universe = UniverseService()
+_news_service = NewsIngestService()
 
 @router.get("/{ticker}/history", response_model=dict)
 async def get_history(
@@ -31,6 +35,15 @@ async def get_history(
         candles = await service.fetch_history(ticker, start, end, interval)
     except HistoryDownloadError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    # Auto-add ticker to universe upon successful fetch
+    try:
+        _universe.add_ticker(ticker)
+        # Trigger immediate background news ingest for the ticker
+        to_dt = datetime.utcnow()
+        from_dt = datetime(to_dt.year, to_dt.month, to_dt.day)
+        asyncio.create_task(_news_service.collect(ticker, from_dt, to_dt, 10))
+    except Exception:
+        pass
     payload = {
         "ticker": ticker,
         "interval": interval,

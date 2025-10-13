@@ -18,6 +18,11 @@ depends_on = None
 def upgrade() -> None:
     # Idempotent add with explicit existence checks for robustness
     conn = op.get_bind()
+    dialect = conn.dialect.name
+
+    if dialect != 'postgresql':
+        # SQLite path: article already created with url column in base migration
+        return
 
     # Add to parent table if missing
     exists_parent = conn.execute(

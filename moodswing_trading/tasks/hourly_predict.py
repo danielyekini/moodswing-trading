@@ -16,17 +16,18 @@ from pathlib import Path
 import redis
 
 from moodswing_trading.core.celery_app import celery_app
-from moodswing_trading.core.config import get_settings
 from moodswing_trading.core.logging import setup_logging
 from db import crud
 from db.models import SessionLocal
 from services.market import MarketService
+from services.universe import UniverseService
 
 setup_logging()
+from moodswing_trading.core.config import get_settings
 settings = get_settings()
 
 REDIS = redis.Redis.from_url(settings.redis_url)
-TICKERS = settings.tickers
+universe = UniverseService()
 
 market = MarketService()
 
@@ -66,7 +67,8 @@ def run(run_type: str = "HOURLY") -> None:
     except Exception:
         git_sha = "unknown"
     model_version = f"{dt.isoformat()}-{git_sha}"
-    for ticker in TICKERS:
+    tickers = universe.list_tickers(active_only=True)
+    for ticker in tickers:
         mu, sigma = asyncio.run(_predict(ticker))
         with SessionLocal() as db:
             existing = crud.get_latest_prediction(db, ticker, dt)

@@ -10,16 +10,17 @@ from datetime import datetime, timedelta
 import redis
 
 from moodswing_trading.core.celery_app import celery_app
-from moodswing_trading.core.config import get_settings
 from moodswing_trading.core.logging import setup_logging
 from services.news_ingest import NewsIngestService
+from services.universe import UniverseService
 
 
 setup_logging()
+from moodswing_trading.core.config import get_settings
 settings = get_settings()
 
 REDIS = redis.Redis.from_url(settings.redis_url)
-TICKERS = settings.tickers
+universe = UniverseService()
 
 news_service = NewsIngestService()
 
@@ -31,7 +32,8 @@ def ingest() -> None:
     to_dt = datetime.utcnow()
     from_dt = to_dt - timedelta(hours=1)
 
-    for ticker in TICKERS:
+    tickers = universe.list_tickers(active_only=True)
+    for ticker in tickers:
         articles = asyncio.run(news_service.collect(ticker, from_dt, to_dt, 1))
         if not articles:
             continue

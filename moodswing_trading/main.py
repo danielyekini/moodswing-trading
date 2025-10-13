@@ -3,7 +3,7 @@ import os, sys
 # Ensure package-relative imports like `api`, `models`, `services`, `core` work in any runner
 sys.path.append(os.path.dirname(__file__))
 from fastapi.exceptions import RequestValidationError
-from api import company, market, news, predict, sentiment, system
+from api import company, market, news, predict, sentiment, system, icons
 from fastapi.responses import PlainTextResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -75,6 +75,7 @@ app.include_router(predict.router)
 app.include_router(sentiment.router)
 app.include_router(company.router)
 app.include_router(system.router)
+app.include_router(icons.router)
 
 @app.get("/healthz", response_class=PlainTextResponse)
 async def healthz():

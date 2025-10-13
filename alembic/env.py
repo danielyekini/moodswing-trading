@@ -8,7 +8,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-db_url = os.environ.get("DATABASE_URL", "sqlite:///./moodswing.db")
+# Allow overriding the DB URL via Alembic's -x db_url=...
+extra = context.get_x_argument(as_dictionary=True)
+db_url = extra.get("db_url") or os.environ.get("DATABASE_URL", "sqlite:///./moodswing.db")
 config.set_main_option("sqlalchemy.url", db_url)
 
 target_metadata = None

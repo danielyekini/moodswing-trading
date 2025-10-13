@@ -72,3 +72,11 @@ class Prediction(Base):
         {"postgresql_partition_by": "LIST (ticker)"},
     )
 
+
+class TickerUniverse(Base):
+    __tablename__ = "ticker_universe"
+
+    ticker = Column(String, primary_key=True)
+    active = Column(Boolean, nullable=False, default=True)
+    added_at = Column(DateTime(timezone=True), nullable=False)
+

@@ -17,6 +17,7 @@ from models import Article
 from .sentiment import SentimentService
 from db import crud, models as db_models
 from db.models import SessionLocal
+from urllib.parse import urlparse
 
 # Publisher popularity tiers mapped to rank factors in [0.1, 1.0]
 PUBLISHER_RANK = {
@@ -122,14 +123,16 @@ class NewsIngestService:
         limit: int | None = None,
         cursor: str | None = None,
     ) -> tuple[list[Article], str | None, str | None]:
-        """Fetch articles for ticker from the last 24h stored in DB using cursor pagination."""
+        """Fetch the most recent articles for ``ticker`` using cursor pagination.
+
+        Returns the latest items ordered by ``ts_pub`` regardless of age and
+        applies ``limit`` with one extra row to compute the ``next_cursor``.
+        """
 
         def _query() -> tuple[list[db_models.Article], str | None, str | None]:
-            start = datetime.utcnow() - timedelta(days=1)
             with SessionLocal() as db:
                 q = db.query(db_models.Article).filter(
                     db_models.Article.ticker == ticker.upper(),
-                    db_models.Article.ts_pub >= start,
                 )
 
                 # Apply cursor filter
@@ -154,12 +157,11 @@ class NewsIngestService:
                 prev_cursor = None
                 if articles:
                     first_dt = articles[0].ts_pub
-                    # Check if there are rows before the first item
+                    # Check if there are newer rows than the first item
                     pq = db.query(db_models.Article).filter(
                         db_models.Article.ticker == ticker.upper(),
-                        db_models.Article.ts_pub >= start,
+                        db_models.Article.ts_pub > first_dt,
                     )
-                    pq = pq.filter(db_models.Article.ts_pub > first_dt)
                     prev_exists = pq.first() is not None
                     if prev_exists:
                         prev_cursor = first_dt.isoformat()
@@ -167,17 +169,40 @@ class NewsIngestService:
                 return articles, next_cursor, prev_cursor
 
         rows, next_cursor, prev_cursor = await asyncio.to_thread(_query)
-        articles = [
-            Article(
-                id=r.id,
-                headline=r.headline,
-                source=r.provider,
-                url=r.url,
-                ts_pub=r.ts_pub.isoformat() + "Z",
-                sentiment=r.sentiment,
-                weight=r.weight,
+
+        def _domain(u: str | None) -> str | None:
+            try:
+                if not u:
+                    return None
+                host = urlparse(u).netloc.lower()
+                if host.startswith("www."):
+                    host = host[4:]
+                return host if "." in host else None
+            except Exception:
+                return None
+        articles = []
+        for r in rows:
+            # Prefer source domain from raw_json.source.href if present; fallback to the article URL domain
+            raw = r.raw_json or {}
+            src_href = None
+            try:
+                src = raw.get("source") or {}
+                src_href = src.get("href")
+            except Exception:
+                src_href = None
+            source_domain = _domain(src_href) or _domain(r.url)
+
+            articles.append(
+                Article(
+                    id=r.id,
+                    headline=r.headline,
+                    source=r.provider,
+                    url=r.url,
+                    ts_pub=r.ts_pub.isoformat() + "Z",
+                    sentiment=r.sentiment,
+                    weight=r.weight,
+                    source_domain=source_domain,
+                )
             )
-            for r in rows
-        ]
 
         return articles, next_cursor, prev_cursor

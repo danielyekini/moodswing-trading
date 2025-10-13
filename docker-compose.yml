@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -37,12 +37,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/postgres
-      REDIS_URL: redis://redis:6379/0
-      LOG_LEVEL: INFO
-      ALLOWED_ORIGINS: "*"
-      TICKERS: AAPL,MSFT,GOOGL
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -58,11 +54,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/postgres
-      REDIS_URL: redis://redis:6379/0
-      LOG_LEVEL: INFO
-      TICKERS: AAPL,MSFT,GOOGL
+    env_file:
+      - .env
     entrypoint: ["celery", "-A", "moodswing_trading.core.celery_app:celery_app", "worker", "--loglevel=INFO"]
     restart: unless-stopped
 

@@ -4,6 +4,7 @@ from datetime import datetime
 from services.news_ingest import NewsIngestService
 from utils import cached_json_response
 from utils.cache import get_json as cache_get_json, set_json as cache_set_json
+from urllib.parse import urlparse
 
 router = APIRouter(
     prefix="/api/v1/news",
@@ -54,9 +55,29 @@ async def fetch_news(
     articles, next_cur, prev_cur = await service.fetch(
         ticker, order="desc", limit=limit, cursor=cursor
     )
+    def _domain(u: str | None) -> str | None:
+        try:
+            if not u:
+                return None
+            netloc = urlparse(u).netloc.lower()
+            if netloc.startswith("www."):
+                netloc = netloc[4:]
+            return netloc if "." in netloc else None
+        except Exception:
+            return None
     payload = {
         "ticker": ticker,
-        "articles": [a.model_dump() for a in articles],
+        "articles": [
+            {
+                **a.model_dump(),
+                "icon_url": (
+                    f"/api/v1/icons/{a.source_domain}"
+                    if a.source_domain
+                    else (f"/api/v1/icons/{_domain(a.url)}" if _domain(a.url) else None)
+                ),
+            }
+            for a in articles
+        ],
         "next_cursor": next_cur,
         "prev_cursor": prev_cur,
     }
