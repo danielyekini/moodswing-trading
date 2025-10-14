@@ -1,0 +1,10 @@
+services:
+  api:
+    volumes:
+      - ./moodswing_trading:/app/moodswing_trading
+    environment:
+      UVICORN_RELOAD: "1"
+      UVICORN_WORKERS: "1"
+  worker:
+    volumes:
+      - ./moodswing_trading:/app/moodswing_trading

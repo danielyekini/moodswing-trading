@@ -15,4 +15,10 @@ fi
 
 alembic upgrade head
 UVICORN_WORKERS="${UVICORN_WORKERS:-1}"
-exec uvicorn moodswing_trading.main:app --host 0.0.0.0 --port 8000 --workers "$UVICORN_WORKERS" --log-level info
+RELOAD_ARG=""
+if [ "${UVICORN_RELOAD:-0}" = "1" ]; then
+  RELOAD_ARG="--reload"
+  # When reloading, force a single worker
+  UVICORN_WORKERS="1"
+fi
+exec uvicorn moodswing_trading.main:app --host 0.0.0.0 --port 8000 --workers "$UVICORN_WORKERS" --log-level info $RELOAD_ARG
